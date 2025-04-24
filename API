@@ -1,0 +1,211 @@
+// apiService.js - Funzioni per interagire con l'API di Instagram
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Base URL per le API (questo sarebbe un mock per sviluppo)
+const API_BASE_URL = 'https://api.arya-social.com/v1';
+
+// Funzione per ottenere il token di autenticazione
+const getAuthToken = async () => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    return token;
+  } catch (error) {
+    console.error('Errore nel recupero del token:', error);
+    return null;
+  }
+};
+
+// Funzione per autenticare l'utente
+export const loginUser = async (username, password) => {
+  try {
+    // In una vera app, questa sarebbe una chiamata API
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      // Memorizza il token di autenticazione
+      await AsyncStorage.setItem('userToken', data.token);
+      return { success: true, data };
+    } else {
+      return { success: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('Errore durante il login:', error);
+    return { success: false, error: 'Errore di connessione' };
+  }
+};
+
+// Funzione per cercare utenti in base ai filtri
+export const searchUsers = async (filters) => {
+  try {
+    const token = await getAuthToken();
+    
+    const response = await fetch(`${API_BASE_URL}/users/search`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(filters),
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      return { success: true, users: data.users };
+    } else {
+      return { success: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('Errore durante la ricerca utenti:', error);
+    return { success: false, error: 'Errore di connessione' };
+  }
+};
+
+// Funzione per inviare messaggi diretti
+export const sendDirectMessages = async (users, message) => {
+  try {
+    const token = await getAuthToken();
+    
+    const response = await fetch(`${API_BASE_URL}/messages/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ users, message }),
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      return { 
+        success: true, 
+        sent: data.sent,
+        failed: data.failed,
+        messageId: data.messageId 
+      };
+    } else {
+      return { success: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('Errore durante l\'invio messaggi:', error);
+    return { success: false, error: 'Errore di connessione' };
+  }
+};
+
+// Funzione per ottenere lo storico delle campagne
+export const getCampaignHistory = async () => {
+  try {
+    const token = await getAuthToken();
+    
+    const response = await fetch(`${API_BASE_URL}/campaigns/history`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      return { success: true, campaigns: data.campaigns };
+    } else {
+      return { success: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('Errore durante il recupero dello storico:', error);
+    return { success: false, error: 'Errore di connessione' };
+  }
+};
+
+// Funzione per ottenere i dettagli di una campagna
+export const getCampaignDetails = async (campaignId) => {
+  try {
+    const token = await getAuthToken();
+    
+    const response = await fetch(`${API_BASE_URL}/campaigns/${campaignId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      return { success: true, details: data };
+    } else {
+      return { success: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('Errore durante il recupero dei dettagli:', error);
+    return { success: false, error: 'Errore di connessione' };
+  }
+};
+
+// Funzione per aggiornare le impostazioni dell'utente
+export const updateUserSettings = async (settings) => {
+  try {
+    const token = await getAuthToken();
+    
+    const response = await fetch(`${API_BASE_URL}/users/settings`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(settings),
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      return { success: true, data };
+    } else {
+      return { success: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('Errore durante l\'aggiornamento delle impostazioni:', error);
+    return { success: false, error: 'Errore di connessione' };
+  }
+};
+
+// Funzione per verificare lo stato di una campagna in corso
+export const checkCampaignStatus = async (campaignId) => {
+  try {
+    const token = await getAuthToken();
+    
+    const response = await fetch(`${API_BASE_URL}/campaigns/${campaignId}/status`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      return { 
+        success: true, 
+        status: data.status,
+        sent: data.sent,
+        total: data.total,
+        failed: data.failed
+      };
+    } else {
+      return { success: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('Errore durante il controllo dello stato:', error);
+    return { success: false, error: 'Errore di connessione' };
+  }
+};
