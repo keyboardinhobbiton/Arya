@@ -1,0 +1,921 @@
+// App.js - Componente principale dell'app Arya
+
+import React, { useState, useEffect } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StatusBar } from 'expo-status-bar';
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  TextInput, 
+  TouchableOpacity, 
+  FlatList, 
+  Image, 
+  Alert,
+  ActivityIndicator,
+  Switch,
+  Modal,
+  ScrollView
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+// Schermata di Login
+const LoginScreen = ({ navigation }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!username || !password) {
+      Alert.alert('Errore', 'Per favore inserisci username e password');
+      return;
+    }
+
+    setIsLoading(true);
+    
+    // Simulazione autenticazione con Instagram
+    setTimeout(() => {
+      setIsLoading(false);
+      // Memorizza i dati di accesso
+      AsyncStorage.setItem('userToken', 'dummy-auth-token');
+      navigation.replace('Dashboard');
+    }, 2000);
+  };
+
+  return (
+    <View style={styles.container}>
+      <Image 
+        source={require('./assets/arya-logo.png')} 
+        style={styles.logo}
+        defaultSource={require('./assets/arya-logo.png')}
+      />
+      <Text style={styles.title}>Arya</Text>
+      <Text style={styles.subtitle}>Social Marketing per Creatori</Text>
+      
+      <View style={styles.inputContainer}>
+        <Ionicons name="person-outline" size={24} color="#666" style={styles.inputIcon} />
+        <TextInput
+          style={styles.input}
+          placeholder="Username Instagram"
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
+        />
+      </View>
+      
+      <View style={styles.inputContainer}>
+        <Ionicons name="lock-closed-outline" size={24} color="#666" style={styles.inputIcon} />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+      </View>
+      
+      <TouchableOpacity 
+        style={styles.loginButton} 
+        onPress={handleLogin}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.loginButtonText}>Accedi</Text>
+        )}
+      </TouchableOpacity>
+      
+      <TouchableOpacity style={styles.helpLink}>
+        <Text style={styles.helpLinkText}>Problemi con l'accesso?</Text>
+      </TouchableOpacity>
+      
+      <StatusBar style="auto" />
+    </View>
+  );
+};
+
+// Schermata Dashboard
+const DashboardScreen = ({ navigation }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Arya</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+          <Ionicons name="settings-outline" size={24} color="#333" />
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Cerca utenti Instagram..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+      
+      <View style={styles.actionsContainer}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('FilterUsers')}
+        >
+          <Ionicons name="filter" size={28} color="#fff" />
+          <Text style={styles.actionButtonText}>Filtra Utenti</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('CreateMessage')}
+        >
+          <Ionicons name="create" size={28} color="#fff" />
+          <Text style={styles.actionButtonText}>Crea Messaggio</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('CampaignHistory')}
+        >
+          <Ionicons name="time" size={28} color="#fff" />
+          <Text style={styles.actionButtonText}>Storico</Text>
+        </TouchableOpacity>
+      </View>
+      
+      <Text style={styles.sectionTitle}>Campagne Recenti</Text>
+      
+      <FlatList
+        data={recentCampaigns}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <TouchableOpacity 
+            style={styles.campaignItem}
+            onPress={() => navigation.navigate('CampaignDetail', { campaign: item })}
+          >
+            <View style={styles.campaignHeader}>
+              <Text style={styles.campaignName}>{item.name}</Text>
+              <Text style={styles.campaignDate}>{item.date}</Text>
+            </View>
+            <View style={styles.campaignStats}>
+              <Text style={styles.campaignStat}>
+                <Ionicons name="person" size={16} color="#666" /> {item.targetUsers}
+              </Text>
+              <Text style={styles.campaignStat}>
+                <Ionicons name="chatbubble" size={16} color="#666" /> {item.messagesSent}
+              </Text>
+              <Text style={styles.campaignStat}>
+                <Ionicons name="checkmark-circle" size={16} color="#666" /> {item.responses}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
+    </View>
+  );
+};
+
+// Schermata Filtro Utenti
+const FilterUsersScreen = ({ navigation }) => {
+  const [minFollowers, setMinFollowers] = useState('1000');
+  const [maxFollowers, setMaxFollowers] = useState('');
+  const [minViews, setMinViews] = useState('500');
+  const [avgEngagement, setAvgEngagement] = useState('5');
+  const [isVerified, setIsVerified] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+
+  const applyFilters = () => {
+    setIsLoading(true);
+    
+    // Simula la ricerca di utenti con i filtri applicati
+    setTimeout(() => {
+      setIsLoading(false);
+      setFilteredUsers([
+        { id: '1', username: 'fashion_creator', followers: 15000, avgViews: 2500, verified: true, profilePic: 'https://via.placeholder.com/50' },
+        { id: '2', username: 'travel_blogger', followers: 25000, avgViews: 7500, verified: false, profilePic: 'https://via.placeholder.com/50' },
+        { id: '3', username: 'food_enthusiast', followers: 10000, avgViews: 1800, verified: false, profilePic: 'https://via.placeholder.com/50' },
+        { id: '4', username: 'fitness_coach', followers: 50000, avgViews: 12000, verified: true, profilePic: 'https://via.placeholder.com/50' },
+        { id: '5', username: 'tech_reviewer', followers: 35000, avgViews: 9000, verified: true, profilePic: 'https://via.placeholder.com/50' },
+      ]);
+    }, 1500);
+  };
+
+  const selectUsers = () => {
+    if (filteredUsers.length === 0) {
+      Alert.alert('Attenzione', 'Nessun utente selezionato');
+      return;
+    }
+    
+    navigation.navigate('CreateMessage', { selectedUsers: filteredUsers });
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.headerTitle}>Filtra Utenti</Text>
+      
+      <ScrollView style={styles.filtersContainer}>
+        <Text style={styles.filterLabel}>Followers</Text>
+        <View style={styles.rangeContainer}>
+          <TextInput
+            style={styles.rangeInput}
+            placeholder="Min"
+            keyboardType="numeric"
+            value={minFollowers}
+            onChangeText={setMinFollowers}
+          />
+          <Text style={styles.rangeSeparator}>-</Text>
+          <TextInput
+            style={styles.rangeInput}
+            placeholder="Max"
+            keyboardType="numeric"
+            value={maxFollowers}
+            onChangeText={setMaxFollowers}
+          />
+        </View>
+        
+        <Text style={styles.filterLabel}>Visualizzazioni minime</Text>
+        <TextInput
+          style={styles.filterInput}
+          placeholder="Min visualizzazioni"
+          keyboardType="numeric"
+          value={minViews}
+          onChangeText={setMinViews}
+        />
+        
+        <Text style={styles.filterLabel}>Engagement medio (%)</Text>
+        <TextInput
+          style={styles.filterInput}
+          placeholder="% engagement"
+          keyboardType="numeric"
+          value={avgEngagement}
+          onChangeText={setAvgEngagement}
+        />
+        
+        <View style={styles.switchContainer}>
+          <Text style={styles.filterLabel}>Solo account verificati</Text>
+          <Switch
+            value={isVerified}
+            onValueChange={setIsVerified}
+            trackColor={{ false: "#d1d1d1", true: "#4FC3F7" }}
+            thumbColor={isVerified ? "#0288D1" : "#f4f3f4"}
+          />
+        </View>
+        
+        <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
+          <Text style={styles.applyButtonText}>Applica Filtri</Text>
+        </TouchableOpacity>
+      </ScrollView>
+      
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#0288D1" style={styles.loader} />
+      ) : (
+        <>
+          {filteredUsers.length > 0 && (
+            <>
+              <Text style={styles.resultTitle}>
+                Utenti trovati: {filteredUsers.length}
+              </Text>
+              
+              <FlatList
+                data={filteredUsers}
+                keyExtractor={item => item.id}
+                renderItem={({ item }) => (
+                  <View style={styles.userItem}>
+                    <Image 
+                      source={{ uri: item.profilePic }}
+                      style={styles.userAvatar}
+                    />
+                    <View style={styles.userInfo}>
+                      <Text style={styles.username}>
+                        {item.username} 
+                        {item.verified && <Ionicons name="checkmark-circle" size={16} color="#0288D1" />}
+                      </Text>
+                      <Text style={styles.userStats}>
+                        {item.followers.toLocaleString()} followers • {item.avgViews.toLocaleString()} views
+                      </Text>
+                    </View>
+                    <TouchableOpacity style={styles.selectButton}>
+                      <Ionicons name="checkmark" size={24} color="#0288D1" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              />
+              
+              <TouchableOpacity style={styles.nextButton} onPress={selectUsers}>
+                <Text style={styles.nextButtonText}>Seleziona Utenti</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </>
+      )}
+    </View>
+  );
+};
+
+// Schermata Creazione Messaggio
+const CreateMessageScreen = ({ navigation, route }) => {
+  const selectedUsers = route.params?.selectedUsers || [];
+  const [messageText, setMessageText] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
+  
+  const sendMessages = () => {
+    if (!messageText) {
+      Alert.alert('Errore', 'Inserisci un messaggio da inviare');
+      return;
+    }
+    
+    if (selectedUsers.length === 0) {
+      Alert.alert('Errore', 'Nessun utente selezionato');
+      return;
+    }
+    
+    // Simulazione invio messaggi
+    Alert.alert(
+      'Conferma invio',
+      `Stai per inviare il messaggio a ${selectedUsers.length} utenti. Continuare?`,
+      [
+        {
+          text: 'Annulla',
+          style: 'cancel',
+        },
+        {
+          text: 'Invia',
+          onPress: () => {
+            // Simula invio
+            navigation.navigate('SendingProgress', { 
+              totalUsers: selectedUsers.length,
+              message: messageText
+            });
+          }
+        }
+      ]
+    );
+  };
+  
+  return (
+    <View style={styles.container}>
+      <Text style={styles.headerTitle}>Crea Messaggio</Text>
+      
+      <View style={styles.selectedUsersBar}>
+        <Text style={styles.selectedUsersText}>
+          Utenti selezionati: {selectedUsers.length}
+        </Text>
+        <TouchableOpacity 
+          style={styles.changeSelection}
+          onPress={() => navigation.navigate('FilterUsers')}
+        >
+          <Text style={styles.changeSelectionText}>Cambia</Text>
+        </TouchableOpacity>
+      </View>
+      
+      <TextInput
+        style={styles.messageInput}
+        placeholder="Scrivi il tuo messaggio..."
+        value={messageText}
+        onChangeText={setMessageText}
+        multiline
+      />
+      
+      <Text style={styles.tipText}>
+        Suggerimento: personalizza il tuo messaggio includendo {'{nome}'} per inserire il nome utente
+      </Text>
+      
+      <View style={styles.previewButtonContainer}>
+        <TouchableOpacity 
+          style={styles.previewButton}
+          onPress={() => setShowPreview(true)}
+        >
+          <Text style={styles.previewButtonText}>Anteprima</Text>
+        </TouchableOpacity>
+      </View>
+      
+      <TouchableOpacity 
+        style={styles.sendButton}
+        onPress={sendMessages}
+      >
+        <Text style={styles.sendButtonText}>Invia Messaggi</Text>
+      </TouchableOpacity>
+      
+      {/* Modal di anteprima */}
+      <Modal
+        visible={showPreview}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.previewModal}>
+            <Text style={styles.previewTitle}>Anteprima Messaggio</Text>
+            
+            <View style={styles.messagePreview}>
+              <Text style={styles.previewText}>
+                {messageText.replace('{nome}', 'NomeUtente')}
+              </Text>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setShowPreview(false)}
+            >
+              <Text style={styles.closeButtonText}>Chiudi</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+// Schermata Progresso Invio
+const SendingProgressScreen = ({ navigation, route }) => {
+  const { totalUsers, message } = route.params;
+  const [sent, setSent] = useState(0);
+  const [failed, setFailed] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSent(prev => {
+        const newSent = Math.min(prev + Math.floor(Math.random() * 3) + 1, totalUsers);
+        if (Math.random() > 0.9) {
+          setFailed(oldFailed => oldFailed + 1);
+        }
+        
+        if (newSent >= totalUsers) {
+          clearInterval(interval);
+          setIsComplete(true);
+        }
+        
+        return newSent;
+      });
+    }, 500);
+    
+    return () => clearInterval(interval);
+  }, [totalUsers]);
+  
+  return (
+    <View style={styles.container}>
+      <Text style={styles.headerTitle}>Invio in corso...</Text>
+      
+      <View style={styles.progressContainer}>
+        <Text style={styles.progressText}>
+          {sent} / {totalUsers} messaggi inviati
+        </Text>
+        
+        <View style={styles.progressBarContainer}>
+          <View 
+            style={[
+              styles.progressBar, 
+              { width: `${(sent / totalUsers) * 100}%` }
+            ]} 
+          />
+        </View>
+        
+        {failed > 0 && (
+          <Text style={styles.failedText}>
+            {failed} messaggi non inviati
+          </Text>
+        )}
+      </View>
+      
+      {isComplete ? (
+        <View style={styles.completedContainer}>
+          <Ionicons name="checkmark-circle" size={60} color="#4CAF50" />
+          <Text style={styles.completedText}>Invio completato!</Text>
+          <Text style={styles.statisticsText}>
+            Messaggi inviati con successo: {sent - failed}
+          </Text>
+          
+          <TouchableOpacity 
+            style={styles.doneButton}
+            onPress={() => navigation.navigate('Dashboard')}
+          >
+            <Text style={styles.doneButtonText}>Torna alla Dashboard</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <Text style={styles.waitText}>
+          Non chiudere l'app durante l'invio...
+        </Text>
+      )}
+    </View>
+  );
+};
+
+// Schermata Impostazioni
+const SettingsScreen = ({ navigation }) => {
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
+  
+  const handleLogout = () => {
+    Alert.alert(
+      'Conferma Logout',
+      'Sei sicuro di voler effettuare il logout?',
+      [
+        {
+          text: 'Annulla',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await AsyncStorage.removeItem('userToken');
+            navigation.replace('Login');
+          }
+        }
+      ]
+    );
+  };
+  
+  return (
+    <View style={styles.container}>
+      <Text style={styles.headerTitle}>Impostazioni</Text>
+      
+      <View style={styles.settingsSection}>
+        <Text style={styles.sectionTitle}>Account</Text>
+        
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Nome utente</Text>
+          <Text style={styles.settingValue}>instagram_user</Text>
+        </View>
+        
+        <TouchableOpacity style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Cambia password</Text>
+          <Ionicons name="chevron-forward" size={20} color="#666" />
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.settingsSection}>
+        <Text style={styles.sectionTitle}>Generali</Text>
+        
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Notifiche</Text>
+          <Switch
+            value={notificationsEnabled}
+            onValueChange={setNotificationsEnabled}
+            trackColor={{ false: "#d1d1d1", true: "#4FC3F7" }}
+            thumbColor={notificationsEnabled ? "#0288D1" : "#f4f3f4"}
+          />
+        </View>
+        
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Tema scuro</Text>
+          <Switch
+            value={darkMode}
+            onValueChange={setDarkMode}
+            trackColor={{ false: "#d1d1d1", true: "#4FC3F7" }}
+            thumbColor={darkMode ? "#0288D1" : "#f4f3f4"}
+          />
+        </View>
+      </View>
+      
+      <View style={styles.settingsSection}>
+        <Text style={styles.sectionTitle}>About</Text>
+        
+        <TouchableOpacity style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Termini di servizio</Text>
+          <Ionicons name="chevron-forward" size={20} color="#666" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Privacy Policy</Text>
+          <Ionicons name="chevron-forward" size={20} color="#666" />
+        </TouchableOpacity>
+        
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Versione</Text>
+          <Text style={styles.settingValue}>1.0.0</Text>
+        </View>
+      </View>
+      
+      <TouchableOpacity 
+        style={styles.logoutButton}
+        onPress={handleLogout}
+      >
+        <Text style={styles.logoutButtonText}>Logout</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+// Dati di esempio
+const recentCampaigns = [
+  { 
+    id: '1', 
+    name: 'Campagna Influencer', 
+    date: '15/04/2025', 
+    targetUsers: 50,
+    messagesSent: 48,
+    responses: 12
+  },
+  { 
+    id: '2', 
+    name: 'Lancio Prodotto', 
+    date: '02/04/2025', 
+    targetUsers: 100,
+    messagesSent: 100,
+    responses: 35
+  },
+  { 
+    id: '3', 
+    name: 'Collaborazione Brand', 
+    date: '22/03/2025', 
+    targetUsers: 30,
+    messagesSent: 30,
+    responses: 8
+  },
+];
+
+// Stack Navigator
+const Stack = createStackNavigator();
+
+// Componente principale App
+export default function App() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [userToken, setUserToken] = useState(null);
+
+  useEffect(() => {
+    // Controlla se l'utente è già loggato
+    const bootstrapAsync = async () => {
+      let token;
+      try {
+        token = await AsyncStorage.getItem('userToken');
+      } catch (e) {
+        // Error reading token
+      }
+      
+      setUserToken(token);
+      setIsLoading(false);
+    };
+
+    bootstrapAsync();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0288D1" />
+        <Text style={styles.loadingText}>Caricamento Arya...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator 
+        initialRouteName={userToken ? 'Dashboard' : 'Login'}
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Dashboard" component={DashboardScreen} />
+        <Stack.Screen name="FilterUsers" component={FilterUsersScreen} />
+        <Stack.Screen name="CreateMessage" component={CreateMessageScreen} />
+        <Stack.Screen name="SendingProgress" component={SendingProgressScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+// Stili dell'applicazione
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f9f9f9',
+    padding: 20,
+    paddingTop: 50,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    resizeMode: 'contain',
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#0288D1',
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 30,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    height: 50,
+    fontSize: 16,
+  },
+  loginButton: {
+    backgroundColor: '#0288D1',
+    borderRadius: 8,
+    height: 50,    
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    elevation: 2,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  helpLink: {
+    marginTop: 20,
+  },
+  helpLinkText: {
+    color: '#0288D1',
+    fontSize: 14,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: 45,
+    fontSize: 16,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  actionButton: {
+    backgroundColor: '#0288D1',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    width: '31%',
+    elevation: 2,
+  },
+  actionButtonText: {
+    color: '#fff',
+    marginTop: 5,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  campaignItem: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  campaignHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  campaignName: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    color: '#333',
+  },
+  campaignDate: {
+    color: '#666',
+    fontSize: 12,
+  },
+  campaignStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  campaignStat: {
+    color: '#666',
+    fontSize: 14,
+  },
+  filtersContainer: {
+    flex: 1,
+    marginBottom: 10,
+  },
+  filterLabel: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 5,
+    marginTop: 10,
+  },
+  rangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  rangeInput: {
+    flex: 1,
+    height: 45,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  rangeSeparator: {
+    marginHorizontal: 10,
+    fontSize: 18,
+    color: '#666',
+  },
+  filterInput: {
+    height: 45,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  applyButton: {
+    backgroundColor: '#0288D1',
+    borderRadius: 8,
+    height: 50,    
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+    elevation: 2,
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  loader: {
+    marginVertical: 20,
+  },
+  resultTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  userItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius:
