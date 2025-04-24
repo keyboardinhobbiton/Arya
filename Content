@@ -1,0 +1,535 @@
+// CampaignDetailScreen.js - Schermata di dettaglio campagna
+
+import React, { useState, useEffect } from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  ScrollView,
+  ActivityIndicator,
+  TouchableOpacity,
+  FlatList,
+  Image
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { PieChart } from 'react-native-chart-kit';
+import { getCampaignDetails } from '../services/apiService';
+
+const CampaignDetailScreen = ({ route, navigation }) => {
+  const { campaign } = route.params;
+  const [isLoading, setIsLoading] = useState(true);
+  const [details, setDetails] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview');
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      try {
+        setIsLoading(true);
+        // Simulazione chiamata API
+        // const response = await getCampaignDetails(campaign.id);
+        
+        // Dati fittizi per dimostrazione
+        const mockResponse = {
+          success: true,
+          details: {
+            id: campaign.id,
+            name: campaign.name,
+            date: campaign.date,
+            status: 'completed',
+            messagesSent: campaign.messagesSent,
+            targetUsers: campaign.targetUsers,
+            responses: campaign.responses,
+            reads: Math.floor(campaign.messagesSent * 0.7),
+            clicks: Math.floor(campaign.responses * 0.5),
+            message: 'Ciao {nome}, ho visto il tuo profilo e mi piacerebbe collaborare con te per promuovere il nostro nuovo prodotto. Saresti interessato/a?',
+            userStats: {
+              verifiedUsers: Math.floor(campaign.targetUsers * 0.3),
+              averageFollowers: 15000,
+              topCategories: ['Fashion', 'Beauty', 'Lifestyle']
+            },
+            targetedUsers: Array.from({ length: 10 }, (_, i) => ({
+              id: `u${i}`,
+              username: `user_${i + 1}`,
+              followers: Math.floor(Math.random() * 50000) + 5000,
+              responded: Math.random() > 0.6,
+              read: Math.random() > 0.3,
+              profilePic: 'https://via.placeholder.com/50'
+            }))
+          }
+        };
+        
+        if (mockResponse.success) {
+          setDetails(mockResponse.details);
+        } else {
+          console.error('Errore nel recupero dettagli:', mockResponse.error);
+        }
+      } catch (error) {
+        console.error('Errore:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchDetails();
+  }, [campaign]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0288D1" />
+        <Text style={styles.loadingText}>Caricamento dettagli...</Text>
+      </View>
+    );
+  }
+
+  const renderOverviewTab = () => (
+    <View style={styles.tabContent}>
+      <View style={styles.statsCard}>
+        <Text style={styles.statsCardTitle}>Statistiche Generali</Text>
+        
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{details.targetUsers}</Text>
+            <Text style={styles.statLabel}>Utenti Target</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{details.messagesSent}</Text>
+            <Text style={styles.statLabel}>Messaggi Inviati</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{details.responses}</Text>
+            <Text style={styles.statLabel}>Risposte</Text>
+          </View>
+        </View>
+      </View>
+      
+      <View style={styles.statsCard}>
+        <Text style={styles.statsCardTitle}>Performance</Text>
+        
+        <View style={styles.chartContainer}>
+          <PieChart
+            data={[
+              {
+                name: 'Letti',
+                population: details.reads,
+                color: '#4CAF50',
+                legendFontColor: '#333',
+                legendFontSize: 12,
+              },
+              {
+                name: 'Risposte',
+                population: details.responses,
+                color: '#2196F3',
+                legendFontColor: '#333',
+                legendFontSize: 12,
+              },
+              {
+                name: 'Non letti',
+                population: details.messagesSent - details.reads,
+                color: '#9E9E9E',
+                legendFontColor: '#333',
+                legendFontSize: 12,
+              },
+            ]}
+            width={300}
+            height={200}
+            chartConfig={{
+              backgroundColor: '#fff',
+              backgroundGradientFrom: '#fff',
+              backgroundGradientTo: '#fff',
+              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            }}
+            accessor="population"
+            backgroundColor="transparent"
+            paddingLeft="15"
+            absolute
+          />
+        </View>
+      </View>
+      
+      <View style={styles.statsCard}>
+        <Text style={styles.statsCardTitle}>Insights Utenti</Text>
+        
+        <View style={styles.insightItem}>
+          <Text style={styles.insightLabel}>Account verificati:</Text>
+          <Text style={styles.insightValue}>
+            {details.userStats.verifiedUsers} ({Math.round((details.userStats.verifiedUsers / details.targetUsers) * 100)}%)
+          </Text>
+        </View>
+        
+        <View style={styles.insightItem}>
+          <Text style={styles.insightLabel}>Media follower:</Text>
+          <Text style={styles.insightValue}>
+            {details.userStats.averageFollowers.toLocaleString()}
+          </Text>
+        </View>
+        
+        <View style={styles.insightItem}>
+          <Text style={styles.insightLabel}>Top categorie:</Text>
+          <Text style={styles.insightValue}>
+            {details.userStats.topCategories.join(', ')}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderMessageTab = () => (
+    <View style={styles.tabContent}>
+      <View style={styles.messageCard}>
+        <Text style={styles.messageCardTitle}>Messaggio Inviato</Text>
+        <View style={styles.messageContainer}>
+          <Text style={styles.messageText}>{details.message}</Text>
+        </View>
+        
+        <View style={styles.messageStats}>
+          <View style={styles.messageStatItem}>
+            <Ionicons name="eye-outline" size={20} color="#666" />
+            <Text style={styles.messageStatText}>
+              Visualizzato: {Math.round((details.reads / details.messagesSent) * 100)}%
+            </Text>
+          </View>
+          
+          <View style={styles.messageStatItem}>
+            <Ionicons name="chatbubble-outline" size={20} color="#666" />
+            <Text style={styles.messageStatText}>
+              Risposto: {Math.round((details.responses / details.messagesSent) * 100)}%
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderUsersTab = () => (
+    <View style={styles.tabContent}>
+      <Text style={styles.usersListTitle}>
+        Utenti contattati ({details.targetedUsers.length})
+      </Text>
+      
+      <FlatList
+        data={details.targetedUsers}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.userListItem}>
+            <Image source={{ uri: item.profilePic }} style={styles.userListAvatar} />
+            
+            <View style={styles.userListInfo}>
+              <Text style={styles.userListName}>{item.username}</Text>
+              <Text style={styles.userListFollowers}>
+                {item.followers.toLocaleString()} followers
+              </Text>
+            </View>
+            
+            <View style={styles.userListStatus}>
+              {item.responded ? (
+                <Ionicons name="chatbubble" size={20} color="#4CAF50" />
+              ) : item.read ? (
+                <Ionicons name="eye" size={20} color="#2196F3" />
+              ) : (
+                <Ionicons name="time" size={20} color="#9E9E9E" />
+              )}
+            </View>
+          </View>
+        )}
+      />
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{details.name}</Text>
+        <View style={{ width: 24 }} />
+      </View>
+      
+      <View style={styles.campaignHeader}>
+        <Text style={styles.campaignDate}>
+          <Ionicons name="calendar" size={16} color="#666" /> {details.date}
+        </Text>
+        <View style={styles.campaignStatusBadge}>
+          <Text style={styles.campaignStatusText}>Completata</Text>
+        </View>
+      </View>
+      
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'overview' && styles.activeTabButton]}
+          onPress={() => setActiveTab('overview')}
+        >
+          <Text style={[styles.tabButtonText, activeTab === 'overview' && styles.activeTabButtonText]}>
+            Panoramica
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'message' && styles.activeTabButton]}
+          onPress={() => setActiveTab('message')}
+        >
+          <Text style={[styles.tabButtonText, activeTab === 'message' && styles.activeTabButtonText]}>
+            Messaggio
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'users' && styles.activeTabButton]}
+          onPress={() => setActiveTab('users')}
+        >
+          <Text style={[styles.tabButtonText, activeTab === 'users' && styles.activeTabButtonText]}>
+            Utenti
+          </Text>
+        </TouchableOpacity>
+      </View>
+      
+      <ScrollView style={styles.contentContainer}>
+        {activeTab === 'overview' && renderOverviewTab()}
+        {activeTab === 'message' && renderMessageTab()}
+        {activeTab === 'users' && renderUsersTab()}
+      </ScrollView>
+      
+      <TouchableOpacity 
+        style={styles.relaunchButton}
+        onPress={() => navigation.navigate('CreateMessage', { 
+          campaignToRelaunch: details 
+        })}
+      >
+        <Ionicons name="refresh" size={20} color="#fff" />
+        <Text style={styles.relaunchButtonText}>Rilancia Campagna</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f9f9f9',
+    paddingTop: 50,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 15,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  campaignHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  campaignDate: {
+    fontSize: 14,
+    color: '#666',
+  },
+  campaignStatusBadge: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+  },
+  campaignStatusText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  activeTabButton: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#0288D1',
+  },
+  tabButtonText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  activeTabButtonText: {
+    fontWeight: 'bold',
+    color: '#0288D1',
+  },
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  tabContent: {
+    paddingVertical: 20,
+  },
+  statsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  statsCardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#0288D1',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 5,
+  },
+  chartContainer: {
+    alignItems: 'center',
+  },
+  insightItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  insightLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  insightValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  messageCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  messageCardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  messageContainer: {
+    backgroundColor: '#f2f2f2',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+  },
+  messageText: {
+    fontSize: 16,
+    color: '#333',
+    lineHeight: 22,
+  },
+  messageStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  messageStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  messageStatText: {
+    marginLeft: 5,
+    fontSize: 14,
+    color: '#666',
+  },
+  usersListTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  userListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    elevation: 1,
+    borderWidth: 1,
+borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  userListAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  userListInfo: {
+    flex: 1,
+  },
+  userListName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  userListFollowers: {
+    fontSize: 12,
+    color: '#666',
+  },
+  userListStatus: {
+    width: 40,
+    alignItems: 'center',
+  },
+  relaunchButton: {
+    flexDirection: 'row',
+    backgroundColor: '#0288D1',
+    borderRadius: 8,
+    height: 50,    
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    elevation: 2,
+  },
+  relaunchButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+});
+
+export default CampaignDetailScreen;
