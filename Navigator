@@ -1,106 +1,182 @@
-// navigation/AppNavigator.js
+// Aggiungi queste funzioni al file apiService.js
 
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
-
-// Schermate
-import LoginScreen from '../screens/LoginScreen';
-import DashboardScreen from '../screens/DashboardScreen';
-import FilterUsersScreen from '../screens/FilterUsersScreen';
-import CreateMessageScreen from '../screens/CreateMessageScreen';
-import SendingProgressScreen from '../screens/SendingProgressScreen';
-import CampaignDetailScreen from '../screens/CampaignDetailScreen';
-import CampaignHistoryScreen from '../screens/CampaignHistoryScreen';
-import SettingsScreen from '../screens/SettingsScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-
-const AuthStack = createStackNavigator();
-const MainStack = createStackNavigator();
-const Tab = createBottomTabNavigator();
-
-const AuthNavigator = () => (
-  <AuthStack.Navigator
-    screenOptions={{
-      headerShown: false,
-    }}
-  >
-    <AuthStack.Screen name="Login" component={LoginScreen} />
-  </AuthStack.Navigator>
-);
-
-const CampaignStackNavigator = () => (
-  <MainStack.Navigator
-    screenOptions={{
-      headerShown: false,
-    }}
-  >
-    <MainStack.Screen name="Dashboard" component={DashboardScreen} />
-    <MainStack.Screen name="FilterUsers" component={FilterUsersScreen} />
-    <MainStack.Screen name="CreateMessage" component={CreateMessageScreen} />
-    <MainStack.Screen name="SendingProgress" component={SendingProgressScreen} />
-    <MainStack.Screen name="CampaignDetail" component={CampaignDetailScreen} />
-  </MainStack.Navigator>
-);
-
-const TabNavigator = () => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarIcon: ({ focused, color, size }) => {
-        let iconName;
-
-        if (route.name === 'Campaigns') {
-          iconName = focused ? 'mail' : 'mail-outline';
-        } else if (route.name === 'History') {
-          iconName = focused ? 'time' : 'time-outline';
-        } else if (route.name === 'Profile') {
-          iconName = focused ? 'person' : 'person-outline';
-        } else if (route.name === 'Settings') {
-          iconName = focused ? 'settings' : 'settings-outline';
-        }
-
-        return <Ionicons name={iconName} size={size} color={color} />;
+// Funzione per ottenere il profilo dell'utente
+export const getUserProfile = async () => {
+  try {
+    const token = await getAuthToken();
+    
+    const response = await fetch(`${API_BASE_URL}/users/profile`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
       },
-      tabBarActiveTintColor: '#0288D1',
-      tabBarInactiveTintColor: '#666',
-      tabBarStyle: {
-        height: 60,
-        paddingBottom: 5,
-      },
-    })}
-  >
-    <Tab.Screen 
-      name="Campaigns" 
-      component={CampaignStackNavigator} 
-      options={{ tabBarLabel: 'Campagne' }}
-    />
-    <Tab.Screen 
-      name="History" 
-      component={CampaignHistoryScreen} 
-      options={{ tabBarLabel: 'Storico' }}
-    />
-    <Tab.Screen 
-      name="Profile" 
-      component={ProfileScreen} 
-      options={{ tabBarLabel: 'Profilo' }}
-    />
-    <Tab.Screen 
-      name="Settings" 
-      component={SettingsScreen} 
-      options={{ tabBarLabel: 'Impostazioni' }}
-    />
-  </Tab.Navigator>
-);
-
-const AppNavigator = ({ userToken }) => {
-  return (
-    <NavigationContainer>
-      {userToken ? <TabNavigator /> : <AuthNavigator />}
-    </NavigationContainer>
-  );
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      return { success: true, data };
+    } else {
+      return { success: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('Errore durante il recupero del profilo:', error);
+    return { success: false, error: 'Errore di connessione' };
+  }
 };
 
-export default AppNavigator;
+// Funzione per modificare il profilo dell'utente
+export const updateUserProfile = async (profileData) => {
+  try {
+    const token = await getAuthToken();
+    
+    const response = await fetch(`${API_BASE_URL}/users/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(profileData),
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      return { success: true, data };
+    } else {
+      return { success: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('Errore durante l\'aggiornamento del profilo:', error);
+    return { success: false, error: 'Errore di connessione' };
+  }
+};
+
+// Funzione per registrare un nuovo utente
+export const registerUser = async (userData) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      // Memorizza il token di autenticazione
+      await AsyncStorage.setItem('userToken', data.token);
+      return { success: true, data };
+    } else {
+      return { success: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('Errore durante la registrazione:', error);
+    return { success: false, error: 'Errore di connessione' };
+  }
+};
+
+// Funzione per ottenere statistiche generali
+export const getDashboardStats = async () => {
+  try {
+    const token = await getAuthToken();
+    
+    const response = await fetch(`${API_BASE_URL}/stats/dashboard`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      return { success: true, stats: data };
+    } else {
+      return { success: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('Errore durante il recupero delle statistiche:', error);
+    return { success: false, error: 'Errore di connessione' };
+  }
+};
+
+// Funzione per creare una nuova campagna
+export const createCampaign = async (campaignData) => {
+  try {
+    const token = await getAuthToken();
+    
+    const response = await fetch(`${API_BASE_URL}/campaigns/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(campaignData),
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      return { success: true, campaignId: data.campaignId };
+    } else {
+      return { success: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('Errore durante la creazione della campagna:', error);
+    return { success: false, error: 'Errore di connessione' };
+  }
+};
+
+// Funzione per recuperare la password
+export const requestPasswordReset = async (email) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      return { success: true, message: data.message };
+    } else {
+      return { success: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('Errore durante la richiesta di reset password:', error);
+    return { success: false, error: 'Errore di connessione' };
+  }
+};
+
+// Funzione per validare il token
+export const validateToken = async () => {
+  try {
+    const token = await getAuthToken();
+    
+    const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      return { success: true, valid: true };
+    } else {
+      // Rimuovi il token non valido
+      await AsyncStorage.removeItem('userToken');
+      return { success: false, valid: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('Errore durante la validazione del token:', error);
+    return { success: false, valid: false, error: 'Errore di connessione' };
+  }
+};
