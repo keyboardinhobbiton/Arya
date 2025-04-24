@@ -1,0 +1,186 @@
+// ProfileScreen.js - Schermata del profilo utente
+
+import React, { useState, useEffect } from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  Switch,
+  ActivityIndicator,
+  Alert
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const ProfileScreen = ({ navigation }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [profileData, setProfileData] = useState(null);
+  const [activeNotifications, setActiveNotifications] = useState(true);
+  
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Simulazione caricamento dati profilo da API
+        setTimeout(() => {
+          const mockData = {
+            username: 'marketing_pro',
+            fullName: 'Marketing Professional',
+            email: 'marketing@example.com',
+            profilePicture: 'https://via.placeholder.com/150',
+            accountType: 'Business',
+            isVerified: true,
+            stats: {
+              totalCampaigns: 24,
+              totalMessages: 1250,
+              responseRate: 38,
+              activeSubscription: 'Premium'
+            }
+          };
+          
+          setProfileData(mockData);
+          setIsLoading(false);
+        }, 1000);
+        
+      } catch (error) {
+        console.error('Errore nel caricamento del profilo:', error);
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProfileData();
+  }, []);
+  
+  const handleLogout = () => {
+    Alert.alert(
+      'Conferma Logout',
+      'Sei sicuro di voler effettuare il logout?',
+      [
+        {
+          text: 'Annulla',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await AsyncStorage.removeItem('userToken');
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
+          }
+        }
+      ]
+    );
+  };
+  
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0288D1" />
+        <Text style={styles.loadingText}>Caricamento profilo...</Text>
+      </View>
+    );
+  }
+  
+  return (
+    <View style={styles.container}>
+      <Text style={styles.headerTitle}>Il mio Profilo</Text>
+      
+      <ScrollView style={styles.scrollContainer}>
+        <View style={styles.profileHeader}>
+          <Image 
+            source={{ uri: profileData.profilePicture }}
+            style={styles.profileImage}
+          />
+          
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>
+              {profileData.fullName}
+              {profileData.isVerified && (
+                <Ionicons name="checkmark-circle" size={16} color="#0288D1" style={styles.verifiedIcon} />
+              )}
+            </Text>
+            <Text style={styles.profileUsername}>@{profileData.username}</Text>
+            <Text style={styles.profileEmail}>{profileData.email}</Text>
+            <View style={styles.accountTypeBadge}>
+              <Text style={styles.accountTypeText}>{profileData.accountType}</Text>
+            </View>
+          </View>
+        </View>
+        
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{profileData.stats.totalCampaigns}</Text>
+            <Text style={styles.statLabel}>Campagne</Text>
+          </View>
+          
+          <View style={styles.statDivider} />
+          
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{profileData.stats.totalMessages}</Text>
+            <Text style={styles.statLabel}>Messaggi</Text>
+          </View>
+          
+          <View style={styles.statDivider} />
+          
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{profileData.stats.responseRate}%</Text>
+            <Text style={styles.statLabel}>Risposte</Text>
+          </View>
+        </View>
+        
+        <View style={styles.subscriptionCard}>
+          <View style={styles.subscriptionHeader}>
+            <Text style={styles.subscriptionTitle}>Piano attivo</Text>
+            <View style={styles.subscriptionBadge}>
+              <Text style={styles.subscriptionBadgeText}>
+                {profileData.stats.activeSubscription}
+              </Text>
+            </View>
+          </View>
+          
+          <View style={styles.subscriptionFeatures}>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Text style={styles.featureText}>Messaggi illimitati</Text>
+            </View>
+            
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Text style={styles.featureText}>Filtri avanzati</Text>
+            </View>
+            
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Text style={styles.featureText}>Analisi dettagliate</Text>
+            </View>
+            
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Text style={styles.featureText}>Supporto prioritario</Text>
+            </View>
+          </View>
+          
+          <TouchableOpacity style={styles.subscriptionButton}>
+            <Text style={styles.subscriptionButtonText}>Gestisci Abbonamento</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.settingsSection}>
+          <Text style={styles.sectionTitle}>Impostazioni Account</Text>
+          
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingIconContainer}>
+              <Ionicons name="person" size={20} color="#0288D1" />
+            </View>
+            <Text style={styles.settingLabel}>Modifica Profilo</Text>
+            <Ionicons name="chevron-forward" size={20} color="#666" />
+          </TouchableOpacity>
+          
+          <Touchable
