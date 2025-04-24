@@ -1,0 +1,106 @@
+// navigation/AppNavigator.js
+
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
+
+// Schermate
+import LoginScreen from '../screens/LoginScreen';
+import DashboardScreen from '../screens/DashboardScreen';
+import FilterUsersScreen from '../screens/FilterUsersScreen';
+import CreateMessageScreen from '../screens/CreateMessageScreen';
+import SendingProgressScreen from '../screens/SendingProgressScreen';
+import CampaignDetailScreen from '../screens/CampaignDetailScreen';
+import CampaignHistoryScreen from '../screens/CampaignHistoryScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+
+const AuthStack = createStackNavigator();
+const MainStack = createStackNavigator();
+const Tab = createBottomTabNavigator();
+
+const AuthNavigator = () => (
+  <AuthStack.Navigator
+    screenOptions={{
+      headerShown: false,
+    }}
+  >
+    <AuthStack.Screen name="Login" component={LoginScreen} />
+  </AuthStack.Navigator>
+);
+
+const CampaignStackNavigator = () => (
+  <MainStack.Navigator
+    screenOptions={{
+      headerShown: false,
+    }}
+  >
+    <MainStack.Screen name="Dashboard" component={DashboardScreen} />
+    <MainStack.Screen name="FilterUsers" component={FilterUsersScreen} />
+    <MainStack.Screen name="CreateMessage" component={CreateMessageScreen} />
+    <MainStack.Screen name="SendingProgress" component={SendingProgressScreen} />
+    <MainStack.Screen name="CampaignDetail" component={CampaignDetailScreen} />
+  </MainStack.Navigator>
+);
+
+const TabNavigator = () => (
+  <Tab.Navigator
+    screenOptions={({ route }) => ({
+      headerShown: false,
+      tabBarIcon: ({ focused, color, size }) => {
+        let iconName;
+
+        if (route.name === 'Campaigns') {
+          iconName = focused ? 'mail' : 'mail-outline';
+        } else if (route.name === 'History') {
+          iconName = focused ? 'time' : 'time-outline';
+        } else if (route.name === 'Profile') {
+          iconName = focused ? 'person' : 'person-outline';
+        } else if (route.name === 'Settings') {
+          iconName = focused ? 'settings' : 'settings-outline';
+        }
+
+        return <Ionicons name={iconName} size={size} color={color} />;
+      },
+      tabBarActiveTintColor: '#0288D1',
+      tabBarInactiveTintColor: '#666',
+      tabBarStyle: {
+        height: 60,
+        paddingBottom: 5,
+      },
+    })}
+  >
+    <Tab.Screen 
+      name="Campaigns" 
+      component={CampaignStackNavigator} 
+      options={{ tabBarLabel: 'Campagne' }}
+    />
+    <Tab.Screen 
+      name="History" 
+      component={CampaignHistoryScreen} 
+      options={{ tabBarLabel: 'Storico' }}
+    />
+    <Tab.Screen 
+      name="Profile" 
+      component={ProfileScreen} 
+      options={{ tabBarLabel: 'Profilo' }}
+    />
+    <Tab.Screen 
+      name="Settings" 
+      component={SettingsScreen} 
+      options={{ tabBarLabel: 'Impostazioni' }}
+    />
+  </Tab.Navigator>
+);
+
+const AppNavigator = ({ userToken }) => {
+  return (
+    <NavigationContainer>
+      {userToken ? <TabNavigator /> : <AuthNavigator />}
+    </NavigationContainer>
+  );
+};
+
+export default AppNavigator;
